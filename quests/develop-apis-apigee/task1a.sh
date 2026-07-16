@@ -10,7 +10,7 @@ set -x
 
 ln -s ~/training-data-analyst/quests/develop-apis-apigee ~/develop-apis-apigee
 cd ~/develop-apis-apigee/rest-backend
-export CLOUDRUN_REGION=us-west1
+export CLOUDRUN_REGION=$1
 sed -i "s/us-west1/$CLOUDRUN_REGION/g" config.sh
 source config.sh
 ./init-project.sh
