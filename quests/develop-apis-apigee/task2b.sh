@@ -2,6 +2,7 @@
 
 echo "Create Proxy"
 
+cd ~/develop-apis-apigee/rest-backend
 source config.sh
 
 # =====================================================================

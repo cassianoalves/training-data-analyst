@@ -1,5 +1,6 @@
 #!/bin/bash -x
 
+cd ~/develop-apis-apigee/rest-backend
 source config.sh
 
 gcloud iam service-accounts create apigee-internal-access \
