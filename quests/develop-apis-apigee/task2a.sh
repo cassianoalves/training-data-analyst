@@ -1,5 +1,7 @@
 #!/bin/bash -x
 
+source config.sh
+
 gcloud iam service-accounts create apigee-internal-access \
 --display-name="Service account for internal access by Apigee proxies" \
 --project=${GOOGLE_CLOUD_PROJECT}

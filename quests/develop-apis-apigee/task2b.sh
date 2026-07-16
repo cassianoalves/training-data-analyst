@@ -2,6 +2,8 @@
 
 echo "Create Proxy"
 
+source config.sh
+
 # =====================================================================
 # 1. DEFINIÇÃO DE VARIÁVEIS (Ajustadas dinamicamente para o seu lab)
 # =====================================================================
