@@ -2,6 +2,8 @@
 
 cd ~/develop-apis-apigee/rest-backend
 
+source config.sh
+
 export RESTHOST=$(gcloud run services describe simplebank-rest --platform managed --region $CLOUDRUN_REGION --format json | jq -r '.metadata.annotations."run.googleapis.com/urls" | fromjson[0]')
 echo "export RESTHOST=${RESTHOST}" >> ~/.bashrc
 curl -vH "Authorization: Bearer $(gcloud auth print-identity-token)" -X GET "${RESTHOST}/_status"
