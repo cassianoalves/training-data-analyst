@@ -51,3 +51,5 @@ courses/machine_learning/deepdive/03_tensorflow/taxi_trained/
 
 # Rather than specifying checkpoint explictly, use an implicit specification.
 .ipynb_checkpoints
+
+.idea
