@@ -136,15 +136,20 @@ fi
 echo "Proxy importado com sucesso! Revisão: $REVISION"
 
 # =====================================================================
-# 7. EXECUTAR O DEPLOY DA REVISÃO DO PROXY
+# 7. EXECUTAR O DEPLOY DA REVISÃO DO PROXY (Correção com Service Account no payload)
 # =====================================================================
 echo "Fazendo o deploy da revisão $REVISION no ambiente '$ENV_NAME'..."
+
+# Enviando a service account explicitamente no corpo da requisição exigida pela API do Apigee
 DEPLOY_RESPONSE=$(curl -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"serviceAccount\": \"$SERVICE_ACCOUNT\"}" \
   "https://apigee.googleapis.com/v1/organizations/$PROJECT_ID/environments/$ENV_NAME/apis/$PROXY_NAME/revisions/$REVISION/deployments?override=true" \
   -s)
 
-echo "Deploy concluído! Resposta de implantação:"
-echo $DEPLOY_RESPONSE
+echo "Deploy concluído!"
+echo "Resposta do Apigee:"
+echo $DEPLOY_RESPONSE | grep -o '"state": "[^"]*' | head -n 1
 
 # Limpando arquivos locais temporários
 rm -rf apiproxy $PROXY_NAME.zip
