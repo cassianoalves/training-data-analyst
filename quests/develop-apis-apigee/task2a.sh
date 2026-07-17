@@ -15,8 +15,7 @@ gcloud run services add-iam-policy-binding simplebank-rest \
 
 gcloud projects add-iam-policy-binding ${GOOGLE_CLOUD_PROJECT} \
 --member="serviceAccount:apigee-internal-access@${GOOGLE_CLOUD_PROJECT}.iam.gserviceaccount.com" \
-  --role="roles/iam.serviceAccountTokenCreator" \
-  --condition=none
+  --role="roles/iam.serviceAccountTokenCreator"
 
 
 gcloud run services describe simplebank-rest --platform managed \
