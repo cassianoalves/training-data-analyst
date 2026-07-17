@@ -13,26 +13,36 @@ export ENV="eval"
 export AUTH="Authorization: Bearer $(gcloud auth print-access-token)"
 export SF_NAME="get-address-for-location"
 
-echo "=== Iniciando criação do Shared Flow: $SF_NAME ==="
+echo "=== Iniciando criação do Shared Flow Corrigido: $SF_NAME ==="
 echo "Projeto Alvo: $PROJECT_ID"
 
 # 1. Criação da Estrutura de Diretórios Padronizada do Apigee
 mkdir -p sharedflowbundle/sharedflows
 mkdir -p sharedflowbundle/policies
 
-# 2. Criando o Manifesto Principal do Shared Flow Bundle
+# 2. Criando o Manifesto Principal EXATAMENTE igual ao export do Console
 cat <<EOF > sharedflowbundle/$SF_NAME.xml
-<SharedFlowBundle name="$SF_NAME">
-    <DisplayName>$SF_NAME</DisplayName>
-    <SharedFlows>
-        <SharedFlow>default</SharedFlow>
-    </SharedFlows>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SharedFlowBundle revision="1" name="$SF_NAME">
+   <DisplayName/>
+   <Description/>
+   <SharedFlows>
+     <SharedFlow>default</SharedFlow>
+   </SharedFlows>
+   <subType>SharedFlow</subType>
+   <Policies>
+     <Policy>LC-LookupAddress</Policy>
+     <Policy>SC-GoogleGeocode</Policy>
+     <Policy>EV-ExtractAddress</Policy>
+     <Policy>PC-StoreAddress</Policy>
+   </Policies>
 </SharedFlowBundle>
 EOF
 
-# 3. Criando as Políticas (Policies) individuais
+# 3. Criando as Políticas (Policies) individuais com cabeçalhos estruturados
 # 3.1 Lookup Cache
 cat <<EOF > sharedflowbundle/policies/LC-LookupAddress.xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <LookupCache continueOnError="false" enabled="true" name="LC-LookupAddress">
   <CacheResource>AddressesCache</CacheResource>
   <Scope>Exclusive</Scope>
@@ -46,6 +56,7 @@ EOF
 
 # 3.2 Service Callout
 cat <<EOF > sharedflowbundle/policies/SC-GoogleGeocode.xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ServiceCallout continueOnError="false" enabled="true" name="SC-GoogleGeocode">
   <Request>
     <Set>
@@ -65,6 +76,7 @@ EOF
 
 # 3.3 Extract Variables
 cat <<EOF > sharedflowbundle/policies/EV-ExtractAddress.xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ExtractVariables continueOnError="false" enabled="true" name="EV-ExtractAddress">
   <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
   <JSONPayload>
@@ -79,6 +91,7 @@ EOF
 
 # 3.4 Populate Cache
 cat <<EOF > sharedflowbundle/policies/PC-StoreAddress.xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <PopulateCache continueOnError="false" enabled="true" name="PC-StoreAddress">
   <CacheResource>AddressesCache</CacheResource>
   <Scope>Exclusive</Scope>
@@ -93,8 +106,9 @@ cat <<EOF > sharedflowbundle/policies/PC-StoreAddress.xml
 </PopulateCache>
 EOF
 
-# 4. Criando o fluxo sequencial padrão (default.xml) com as condicionais de Cache Hit
+# 4. Criando o fluxo sequencial padrão (default.xml)
 cat <<EOF > sharedflowbundle/sharedflows/default.xml
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <SharedFlow name="default">
   <Step>
     <Name>LC-LookupAddress</Name>
@@ -114,42 +128,38 @@ cat <<EOF > sharedflowbundle/sharedflows/default.xml
 </SharedFlow>
 EOF
 
-echo "-> Estrutura local criada com sucesso. Compactando bundle..."
+echo "-> Estrutura local idêntica ao export gerada. Compactando bundle..."
 
-# 5. Compactando em arquivo ZIP para importação do Apigee
+# 5. Compactando em arquivo ZIP mantendo estritamente a árvore interna do seu zip
 rm -f sharedflowbundle.zip
 zip -r sharedflowbundle.zip sharedflowbundle/ > /dev/null
 
-echo "-> Enviando pacote do Shared Flow para a API do Apigee..."
+echo "-> Importando pacote na API do Apigee..."
 
-# 6. Importando o Shared Flow para a Organização do Apigee (Cria a Revisão 1)
-# O endpoint 'sharedflows' recebe o arquivo binário em formato multipart
+# 6. Importação para a Organização
 RESPONSE=$(curl -s -X POST \
   -H "$AUTH" \
   -F "file=@sharedflowbundle.zip" \
   "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/sharedflows?name=${SF_NAME}&action=import")
 
-# Extrai o número da revisão criada a partir do JSON de resposta (usualmente revision "1")
 REVISION=$(echo "$RESPONSE" | grep -oP '"revision":\s*"\K[^"]+')
 
 if [ -z "$REVISION" ]; then
-    echo "Erro ao importar Shared Flow. Resposta da API:"
+    echo "Erro ao importar. Resposta da API:"
     echo "$RESPONSE"
     exit 1
 fi
 
-echo "-> Shared Flow importado com sucesso como Revisão $REVISION."
-echo "-> Iniciando o deploy no ambiente '$ENV'..."
+echo "-> Importado com sucesso como Revisão $REVISION."
+echo "-> Executando deploy sem Service Account..."
 
-# 7. Executando o Deploy da revisão importada (sem Service Account anexada)
+# 7. Executando o Deploy no ambiente exigido
 DEPLOY_RESPONSE=$(curl -s -X POST \
   -H "$AUTH" \
   "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/environments/${ENV}/sharedflows/${SF_NAME}/revisions/${REVISION}/deployments")
 
 echo "=== Processo Concluído! ==="
-echo "Status do Deploy:"
 echo "$DEPLOY_RESPONSE" | grep -E "state|revision" || echo "$DEPLOY_RESPONSE"
 
-# Limpeza opcional dos temporários criados localmente
+# Limpeza dos temporários
 rm -rf sharedflowbundle sharedflowbundle.zip
-
